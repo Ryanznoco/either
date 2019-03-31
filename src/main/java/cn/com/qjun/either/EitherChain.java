@@ -7,7 +7,6 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @param <R> 正确或有效值
@@ -16,22 +15,8 @@ import java.util.stream.Stream;
  * @date 2019-03-30
  */
 public class EitherChain<R, L> implements Serializable {
-    public static <R, L> EitherChain<R, L> empty() {
-        return new EitherChain<>();
-    }
-
     public static <R, L> EitherChain<R, L> of(Either<R, L> value) {
-        return EitherChain.<R, L>empty().addValue(value);
-    }
-
-    public static <R, L> EitherChain<R, L> of(Either<R, L>... values) {
-        EitherChain<R, L> eitherChain = EitherChain.empty();
-        Stream.of(values).forEach(eitherChain::addValue);
-        return eitherChain;
-    }
-
-    public boolean isEmpty() {
-        return valueChain.isEmpty();
+        return new EitherChain<>(value);
     }
 
     public boolean isRight() {
@@ -39,7 +24,7 @@ public class EitherChain<R, L> implements Serializable {
     }
 
     public boolean isLeft() {
-        return !isEmpty() && valueChain.stream().allMatch(Either::isLeft);
+        return valueChain.stream().allMatch(Either::isLeft);
     }
 
     public boolean isAllRight() {
@@ -47,8 +32,14 @@ public class EitherChain<R, L> implements Serializable {
     }
 
     public <TR, TL> EitherChain<TR, TL> map(Function<R, TR> rightMapper, Function<L, TL> leftMapper) {
-        EitherChain<TR, TL> eitherChain = EitherChain.empty();
-        valueChain.forEach(either -> eitherChain.addValue(either.map(rightMapper, leftMapper)));
+        EitherChain<TR, TL> eitherChain = null;
+        for (Either<R, L> either : valueChain) {
+            if (eitherChain == null) {
+                eitherChain = new EitherChain<>(either.map(rightMapper, leftMapper));
+            } else {
+                eitherChain.addValue(either.map(rightMapper, leftMapper));
+            }
+        }
         return eitherChain;
     }
 
@@ -81,7 +72,7 @@ public class EitherChain<R, L> implements Serializable {
         if (obj instanceof EitherChain) {
             EitherChain<?, ?> otherChain = (EitherChain<?, ?>) obj;
             if (valueChain.size() == otherChain.valueChain.size()) {
-                for (int i = 0; i < valueChain.size(); i ++) {
+                for (int i = 0; i < valueChain.size(); i++) {
                     Either<?, ?> either = valueChain.get(i);
                     if (!either.equals(otherChain.valueChain.get(i))) {
                         return false;
@@ -117,6 +108,7 @@ public class EitherChain<R, L> implements Serializable {
 
     private final List<Either<R, L>> valueChain = new ArrayList<>();
 
-    private EitherChain() {
+    private EitherChain(Either<R, L> value) {
+        addValue(value);
     }
 }
